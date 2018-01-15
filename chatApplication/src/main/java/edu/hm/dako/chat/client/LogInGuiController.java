@@ -37,7 +37,7 @@ public class LogInGuiController implements Initializable {
 	@FXML
 	private TextField txtServerPort;
 	@FXML
-	private ComboBox comboServerType;
+	private ComboBox<String> comboServerType;
 	@FXML
 	private Button loginButton;
 	@FXML
@@ -159,6 +159,6 @@ public class LogInGuiController implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		comboServerType.getItems().addAll(SystemConstants.IMPL_TCP_SIMPLE);
+		comboServerType.getItems().addAll(SystemConstants.IMPL_TCP_SIMPLE, SystemConstants.IMPL_TCP_ADVANCED);
 	}
 }

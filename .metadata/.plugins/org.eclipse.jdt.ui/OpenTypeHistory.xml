@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<typeInfoHistroy/>
+<typeInfoHistroy>
+<typeInfo handle="=chatApplication/src\/main\/java&lt;edu.hm.dako.chat.server{SimpleChatServerImpl.java[SimpleChatServerImpl" modifiers="1" timestamp="1510132293000"/>
+<typeInfo handle="=chatApplication/src\/main\/java&lt;edu.hm.dako.chat.server{SimpleChatWorkerThreadImpl.java[SimpleChatWorkerThreadImpl" modifiers="1" timestamp="1515964335000"/>
+<typeInfo handle="=chatApplication/src\/main\/java&lt;edu.hm.dako.chat.client{SimpleMessageListenerThreadImpl.java[SimpleMessageListenerThreadImpl" modifiers="1" timestamp="1511345164000"/>
+</typeInfoHistroy>

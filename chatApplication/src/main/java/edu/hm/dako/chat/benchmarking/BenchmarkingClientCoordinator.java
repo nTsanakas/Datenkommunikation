@@ -378,4 +378,9 @@ public class BenchmarkingClientCoordinator extends Thread
 		resultData.setNumberOfRetriedEvents(sharedData.getSumOfAllRetriedEvents());
 		return resultData;
 	}
+
+	@Override
+	// Hier keine Implementierung notwendig.
+	public void readConfirm() {
+	}
 }

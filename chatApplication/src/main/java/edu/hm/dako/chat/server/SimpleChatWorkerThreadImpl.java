@@ -29,7 +29,7 @@ public class SimpleChatWorkerThreadImpl extends AbstractWorkerThread {
 
 		super(con, clients, counter, serverGuiInterface);
 	}
-
+	
 	@Override
 	public void run() {
 		log.debug(
@@ -270,7 +270,7 @@ public class SimpleChatWorkerThreadImpl extends AbstractWorkerThread {
 	/**
 	 * Verbindung zu einem Client ordentlich abbauen
 	 */
-	private void closeConnection() {
+	protected void closeConnection() {
 
 		log.debug("Schliessen der Chat-Connection zum " + userName);
 
@@ -328,7 +328,7 @@ public class SimpleChatWorkerThreadImpl extends AbstractWorkerThread {
 	 * 
 	 * @return boolean, true: Client geloescht, false: Client nicht geloescht
 	 */
-	private boolean checkIfClientIsDeletable() {
+	protected boolean checkIfClientIsDeletable() {
 
 		ClientListEntry client;
 
@@ -442,6 +442,7 @@ public class SimpleChatWorkerThreadImpl extends AbstractWorkerThread {
 				// Logout-Request vom Client empfangen
 				logoutRequestAction(receivedPdu);
 				break;
+				
 
 			default:
 				log.debug("Falsche PDU empfangen von Client: " + receivedPdu.getUserName()

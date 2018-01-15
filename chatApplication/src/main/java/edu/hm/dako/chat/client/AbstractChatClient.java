@@ -84,7 +84,6 @@ public abstract class AbstractChatClient implements ClientCommunication {
 		sharedClientData.logoutCounter = new AtomicInteger(0);
 		sharedClientData.eventCounter = new AtomicInteger(0);
 		sharedClientData.confirmCounter = new AtomicInteger(0);
-		sharedClientData.messageCounter = new AtomicInteger(0);
 	}
 
 	/**

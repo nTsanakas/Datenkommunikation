@@ -17,6 +17,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -35,6 +37,8 @@ public class ClientFxGUI extends Application implements ClientUserInterface {
 	private static LoggedInGuiController lc2;
 	private ClientImpl communicator;
 	private ClientModel model = new ClientModel();
+	private static final Alert confirmAlert = new Alert(AlertType.INFORMATION, 
+			"Nachricht wurde allen qualifizierten Clients zugestellt.", ButtonType.OK);
 
 	public static void main(String[] args) {
 		PropertyConfigurator.configureAndWatch("log4j.client.properties", 60 * 1000);
@@ -134,6 +138,15 @@ public class ClientFxGUI extends Application implements ClientUserInterface {
 			ExceptionHandler.logException(e);
 		}
 
+	}
+	
+	public void readConfirm() {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				confirmAlert.show();
+			}
+		});
 	}
 
 	@Override

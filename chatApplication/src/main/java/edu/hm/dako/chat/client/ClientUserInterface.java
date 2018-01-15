@@ -117,6 +117,12 @@ public interface ClientUserInterface {
 	 */
 
 	public void setErrorMessage(String sender, String errorMessage, long errorCode);
+	
+	/**
+	 * Zeigt ein Dialogfenster an, das den erhalt einer Nachricht von allen anderen
+	 * Clients bestaetigt.
+	 */
+	public void readConfirm();
 
 	/**
 	 * Login vollstaendig und Chat-GUI kann angezeigt werden

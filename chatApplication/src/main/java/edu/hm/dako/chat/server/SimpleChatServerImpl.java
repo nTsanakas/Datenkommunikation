@@ -21,14 +21,14 @@ import javafx.concurrent.Task;
  */
 public class SimpleChatServerImpl extends AbstractChatServer {
 
-	private static Log log = LogFactory.getLog(SimpleChatServerImpl.class);
+	protected static Log log = LogFactory.getLog(SimpleChatServerImpl.class);
 
 	// Threadpool fuer Worker-Threads
-	private final ExecutorService executorService;
+	protected final ExecutorService executorService;
 
 	// Socket fuer den Listener, der alle Verbindungsaufbauwuensche der Clients
 	// entgegennimmt
-	private ServerSocketInterface socket;
+	protected ServerSocketInterface socket;
 
 	/**
 	 * Konstruktor
@@ -115,6 +115,6 @@ public class SimpleChatServerImpl extends AbstractChatServer {
 		executorService.shutdown();
 		log.debug("Threadpool freigegeben");
 
-		System.out.println("SimpleChatServer beendet sich");
+		System.out.println(Thread.currentThread().getName() + " beendet sich");
 	}
 }

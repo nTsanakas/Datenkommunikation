@@ -2,7 +2,6 @@ package edu.hm.dako.chat.client;
 
 import java.io.IOException;
 
-import javafx.collections.ListChangeListener;
 import javafx.stage.Stage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,7 +14,6 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import org.apache.log4j.net.SyslogAppender;
 
 /**
  * Controller fuer Chat-GUI

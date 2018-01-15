@@ -16,7 +16,7 @@ import edu.hm.dako.chat.connection.Connection;
  */
 public class SimpleMessageListenerThreadImpl extends AbstractMessageListenerThread {
 
-	private static Log log = LogFactory.getLog(SimpleMessageListenerThreadImpl.class);
+	protected static Log log = LogFactory.getLog(SimpleMessageListenerThreadImpl.class);
 
 	public SimpleMessageListenerThreadImpl(ClientUserInterface userInterface,
 			Connection con, SharedClientData sharedData) {
@@ -163,6 +163,7 @@ public class SimpleMessageListenerThreadImpl extends AbstractMessageListenerThre
 		ChatPDU receivedPdu = null;
 
 		log.debug("SimpleMessageListenerThread gestartet");
+		log.info("AdvancedMessageListenerThread gestartet");
 
 		while (!finished) {
 

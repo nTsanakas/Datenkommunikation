@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import edu.hm.dako.chat.client.AbstractChatClient;
+import edu.hm.dako.chat.client.AdvancedMessageListenerThreadImpl;
 import edu.hm.dako.chat.client.ClientImpl;
 import edu.hm.dako.chat.client.ClientUserInterface;
 import edu.hm.dako.chat.client.SimpleMessageListenerThreadImpl;
@@ -126,6 +127,16 @@ public class BenchmarkingClientImpl extends AbstractChatClient
 		case TCPSimpleImplementation:
 			try {
 				messageListenerThread = new SimpleMessageListenerThreadImpl(this, connection,
+						sharedClientData);
+				messageListenerThread.start();
+			} catch (Exception e) {
+				ExceptionHandler.logException(e);
+			}
+			break;
+			
+		case TCPAdvancedImplementation:
+			try {
+				messageListenerThread = new AdvancedMessageListenerThreadImpl(this, connection,
 						sharedClientData);
 				messageListenerThread.start();
 			} catch (Exception e) {
@@ -489,5 +500,10 @@ public class BenchmarkingClientImpl extends AbstractChatClient
 	@Override
 	public long getNumberOfReceivedChatMessages() {
 		return this.numberOfReceivedChatMessages;
+	}
+
+	@Override
+	// Man braucht an der Stelle die Bestätigung nich wirklich anzeiogen.
+	public void readConfirm() {
 	}
 }

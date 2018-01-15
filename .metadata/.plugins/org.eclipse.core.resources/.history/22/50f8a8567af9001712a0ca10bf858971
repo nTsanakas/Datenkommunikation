@@ -1,0 +1,231 @@
+package edu.hm.dako.chat.server;
+
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import edu.hm.dako.chat.common.ChatPDU;
+import edu.hm.dako.chat.common.ClientConversationStatus;
+import edu.hm.dako.chat.common.ExceptionHandler;
+import edu.hm.dako.chat.connection.Connection;
+import edu.hm.dako.chat.connection.ConnectionTimeoutException;
+import edu.hm.dako.chat.connection.EndOfFileException;
+
+public class AdvancedChatWorkerThreadImpl extends SimpleChatWorkerThreadImpl {
+
+	private static Log log = LogFactory.getLog(AdvancedChatWorkerThreadImpl.class);
+
+	protected static ConcurrentMap<String, ConfirmThread> confirmThreads = new ConcurrentHashMap<String, ConfirmThread>();
+
+	public AdvancedChatWorkerThreadImpl(Connection con, SharedChatClientList clients, SharedServerCounter counter,
+			ChatServerGuiInterface serverGuiInterface) {
+		super(con, clients, counter, serverGuiInterface);
+	}
+
+	@Override
+	public void run() {
+		log.debug("ChatWorker-Thread erzeugt, Threadname: " + Thread.currentThread().getName());
+		while (!finished && !Thread.currentThread().isInterrupted()) {
+			try {
+				// Warte auf naechste Nachricht des Clients und fuehre
+				// entsprechende Aktion aus
+				this.handleIncomingMessage();
+			} catch (Exception e) {
+				log.error("Exception waehrend der Nachrichtenverarbeitung");
+				ExceptionHandler.logException(e);
+			}
+		}
+		log.debug(Thread.currentThread().getName() + " beendet sich");
+		closeConnection();
+	}
+
+	@Override
+	protected void handleIncomingMessage() throws Exception {
+		if (checkIfClientIsDeletable() == true) {
+			return;
+		}
+
+		// Warten auf naechste Nachricht
+		ChatPDU receivedPdu = null;
+
+		// Nach einer Minute wird geprueft, ob Client noch eingeloggt ist
+		final int RECEIVE_TIMEOUT = 1200000;
+
+		try {
+			receivedPdu = (ChatPDU) connection.receive(RECEIVE_TIMEOUT);
+			// Nachricht empfangen
+			// Zeitmessung fuer Serverbearbeitungszeit starten
+			startTime = System.nanoTime();
+
+		} catch (ConnectionTimeoutException e) {
+
+			// Wartezeit beim Empfang abgelaufen, pruefen, ob der Client
+			// ueberhaupt noch etwas sendet
+			log.debug("Timeout beim Empfangen, " + RECEIVE_TIMEOUT + " ms ohne Nachricht vom Client");
+
+			if (clients.getClient(userName) != null) {
+				if (clients.getClient(userName).getStatus() == ClientConversationStatus.UNREGISTERING) {
+					// Worker-Thread wartet auf eine Nachricht vom Client, aber
+					// es
+					// kommt nichts mehr an
+					log.error("Client ist im Zustand UNREGISTERING und bekommt aber keine Nachricht mehr");
+					// Zur Sicherheit eine Logout-Response-PDU an Client senden
+					// und
+					// dann Worker-Thread beenden
+					finished = true;
+				}
+			}
+			return;
+
+		} catch (EndOfFileException e) {
+			log.debug("End of File beim Empfang, vermutlich Verbindungsabbau des Partners fuer " + userName);
+			finished = true;
+			return;
+
+		} catch (java.net.SocketException e) {
+			log.error("Verbindungsabbruch beim Empfang der naechsten Nachricht vom Client " + getName());
+			finished = true;
+			return;
+
+		} catch (Exception e) {
+			log.error("Empfang einer Nachricht fehlgeschlagen, Workerthread fuer User: " + userName);
+			ExceptionHandler.logException(e);
+			finished = true;
+			return;
+		}
+
+		// Empfangene Nachricht bearbeiten
+		try {
+			switch (receivedPdu.getPduType()) {
+
+			case LOGIN_REQUEST:
+				// Login-Request vom Client empfangen
+				loginRequestAction(receivedPdu);
+				break;
+
+			case CHAT_MESSAGE_REQUEST:
+				// Chat-Nachricht angekommen, an alle verteilen
+				chatMessageRequestAction(receivedPdu);
+				break;
+
+			case LOGOUT_REQUEST:
+				// Logout-Request vom Client empfangen
+				logoutRequestAction(receivedPdu);
+				break;
+
+			case MESSAGE_EVENT_RESPONSE:
+				// Bestaetigung vom Client empfangen
+				eventResponseAction(receivedPdu);
+				break;
+
+			default:
+				log.debug("Falsche PDU empfangen von Client: " + receivedPdu.getUserName() + ", PduType: "
+						+ receivedPdu.getPduType());
+				break;
+			}
+		} catch (Exception e) {
+			log.error("Exception bei der Nachrichtenverarbeitung");
+			e.printStackTrace();
+			ExceptionHandler.logExceptionAndTerminate(e);
+		}
+	}
+
+	@Override
+	protected void logoutRequestAction(ChatPDU receivedPdu) {
+		String keyPart = receivedPdu.getUserName();
+		confirmThreads.forEach((s, ct) -> {
+			if (s.startsWith(keyPart)) {
+				ct.cancelConfirm();
+				confirmThreads.remove(s);
+				return;
+			}
+			ct.removeClientAsConfirmed(userName);
+		});
+
+		super.logoutRequestAction(receivedPdu);
+	}
+
+	@Override
+	protected void chatMessageRequestAction(ChatPDU receivedPdu) {
+		String key = receivedPdu.getUserName() + receivedPdu.getSequenceNumber();
+		ConfirmThread ct = createConfirmationThread(receivedPdu.getUserName());
+
+		confirmThreads.put(key, ct);
+		ct.start();
+		super.chatMessageRequestAction(receivedPdu);
+	}
+
+	protected ConfirmThread createConfirmationThread(String eventUserName) {
+		return new ConfirmThread(eventUserName, clients.getClientNameList());
+	}
+
+	protected void eventResponseAction(ChatPDU receivedPdu) {
+		String key = receivedPdu.getEventUserName() + receivedPdu.getSequenceNumber();
+		String userName = receivedPdu.getUserName();
+
+		try {
+			confirmThreads.get(key).removeClientAsConfirmed(userName);
+		} catch (NullPointerException np) {
+			log.debug("Confirm Thread war nicht zu finden: " + key);
+			System.err.println("Confirm Thread war nicht zu finden: " + key);
+//			np.printStackTrace();
+		}
+	}
+
+	protected class ConfirmThread extends Thread {
+		private String eventUserName;
+		private Vector<String> clientsNotYetConfirmed;
+		private AtomicInteger numberOfReceivedConfirms;
+		private AtomicInteger numberOfLostConfirms;
+
+		public ConfirmThread(String eventUserName, Vector<String> clientNames) {
+			this.eventUserName = eventUserName;
+			this.clientsNotYetConfirmed = clientNames;
+			this.numberOfLostConfirms = new AtomicInteger(0);
+			this.numberOfReceivedConfirms = new AtomicInteger(0);
+		}
+
+		@Override
+		public void run() {
+			while (!clientsNotYetConfirmed.isEmpty()) {
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					log.error(e.getStackTrace());
+				}
+			}
+
+			ChatPDU responsePdu = ChatPDU.createChatMessageConfirmPdu(eventUserName);
+			responsePdu.setNumberOfLostEventConfirms(numberOfLostConfirms.get());
+			responsePdu.setNumberOfReceivedEventConfirms(numberOfReceivedConfirms.get());
+			try {
+				connection.send(responsePdu);
+			} catch (Exception e) {
+				log.error(e.getStackTrace());
+			}
+		}
+
+		protected void cancelConfirm() {
+			numberOfLostConfirms.set(clientsNotYetConfirmed.size());
+			clientsNotYetConfirmed.clear();
+		}
+
+		protected void removeClientAsConfirmed(String name) {
+			clientsNotYetConfirmed.remove(name);
+			numberOfReceivedConfirms.getAndIncrement();
+		}
+
+		@Override
+		public String toString() {
+			String result = "";
+			for (String s : clientsNotYetConfirmed) {
+				result += s + "\n";
+			}
+			return result;
+		}
+	}
+}
